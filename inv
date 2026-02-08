@@ -1,0 +1,233 @@
+--[[
+CLEAN FULL FILE – Inventory UI (ITEM / FOOD / EGG)
+FIXED:
+- Sai end / eof
+- Không còn task bị cắt
+- UI Drag được
+- GingerbreadBear đúng tên
+- Icon đúng path ReplicatedStorage.EggTypes.<Name>Icon
+- Không warning console
+]]
+
+repeat task.wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
+local Player = Players.LocalPlayer
+
+-- ===============================
+-- LIST DATA
+-- ===============================
+local ITEMS = {
+    "BlueExtract","RedExtract","Glue","Gumdrops",
+    "Enzymes","Oil","Glitter","MagicBean",
+    "TropicalDrink", -- ✅ CHỈ THÊM ITEM NÀY
+}
+
+local FOODS = {
+    "Stinger","Coconut","MoonCharm","RoyalJelly",
+    "Blueberry","Strawberry","Pineapple",
+    "SunflowerSeed","GingerbreadBear",
+}
+
+local EGGS = {
+    "Star","Diamond","GiftedSilver",
+    "Gold","RoyalJelly","StarJelly",
+}
+
+-- ===============================
+-- CLIENT CACHE
+-- ===============================
+local Cache = { data = nil, last = 0 }
+
+local function getCache()
+    if tick() - Cache.last > 1 then
+        local ok, res = pcall(function()
+            return require(RS.ClientStatCache):Get()
+        end)
+        if ok then
+            Cache.data = res
+            Cache.last = tick()
+        end
+    end
+    return Cache.data
+end
+
+local function getAmount(name)
+    local cache = getCache()
+    if not cache or not cache.Eggs then return 0 end
+    return tonumber(cache.Eggs[name]) or 0
+end
+
+-- ===============================
+-- KILL OLD UI
+-- ===============================
+local old = Player.PlayerGui:FindFirstChild("DumpInventoryUI")
+if old then old:Destroy() end
+
+-- ===============================
+-- UI ROOT
+-- ===============================
+local gui = Instance.new("ScreenGui")
+gui.Name = "DumpInventoryUI"
+gui.ResetOnSpawn = false
+gui.Parent = Player.PlayerGui
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromScale(0.6, 0.65)
+main.Position = UDim2.fromScale(0.2, 0.18)
+main.BackgroundColor3 = Color3.fromRGB(22,22,22)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,12)
+
+-- ===============================
+-- SCROLL
+-- ===============================
+local scroll = Instance.new("ScrollingFrame", main)
+scroll.Size = UDim2.fromScale(1,1)
+scroll.CanvasSize = UDim2.new(0,0,0,0)
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scroll.ScrollBarThickness = 6
+scroll.BackgroundTransparency = 1
+
+local listLayout = Instance.new("UIListLayout", scroll)
+listLayout.Padding = UDim.new(0,12)
+
+-- ===============================
+-- CATEGORY
+-- ===============================
+local slots = {}
+
+local function createCategory(title, list)
+    local holder = Instance.new("Frame", scroll)
+    holder.Size = UDim2.new(1,-12,0,0)
+    holder.AutomaticSize = Enum.AutomaticSize.Y
+    holder.BackgroundTransparency = 1
+
+    local label = Instance.new("TextLabel", holder)
+    label.Size = UDim2.new(1,0,0,24)
+    label.BackgroundTransparency = 1
+    label.Text = title
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 16
+    label.TextColor3 = Color3.fromRGB(255,220,120)
+
+    local gridFrame = Instance.new("Frame", holder)
+    gridFrame.Position = UDim2.fromOffset(0,28)
+    gridFrame.Size = UDim2.new(1,0,0,0)
+    gridFrame.AutomaticSize = Enum.AutomaticSize.Y
+    gridFrame.BackgroundTransparency = 1
+
+    local grid = Instance.new("UIGridLayout", gridFrame)
+    grid.CellSize = UDim2.fromOffset(95,95)
+    grid.CellPadding = UDim2.fromOffset(6,6)
+
+    for _, itemName in ipairs(list) do
+        local slot = Instance.new("Frame", gridFrame)
+        slot.BackgroundColor3 = Color3.fromRGB(35,35,35)
+        slot.BorderSizePixel = 0
+        Instance.new("UICorner", slot).CornerRadius = UDim.new(0,8)
+
+        local icon = Instance.new("ImageLabel", slot)
+        icon.Size = UDim2.fromScale(0.8,0.55)
+        icon.Position = UDim2.fromScale(0.1,0.05)
+        icon.BackgroundTransparency = 1
+
+        local eggTypes = RS:FindFirstChild("EggTypes")
+        if eggTypes then
+            local obj = eggTypes:FindFirstChild(itemName.."Icon")
+            if obj then
+                if obj:IsA("Decal") or obj:IsA("Texture") then
+                    icon.Image = obj.Texture
+                elseif obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
+                    icon.Image = obj.Image
+                elseif obj:IsA("StringValue") then
+                    icon.Image = obj.Value
+                end
+            end
+        end
+
+        local nameLabel = Instance.new("TextLabel", slot)
+        nameLabel.Size = UDim2.new(1,0,0,14)
+        nameLabel.Position = UDim2.fromScale(0,0.62)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = itemName
+        nameLabel.TextScaled = true
+        nameLabel.TextColor3 = Color3.new(1,1,1)
+
+        local amt = Instance.new("TextLabel", slot)
+        amt.Size = UDim2.new(1,0,0,12)
+        amt.Position = UDim2.fromScale(0,0.8)
+        amt.BackgroundTransparency = 1
+        amt.TextScaled = true
+        amt.TextColor3 = Color3.fromRGB(0,255,140)
+
+        table.insert(slots, {Item = itemName, Label = amt})
+    end
+end
+
+-- ===============================
+-- BUILD
+-- ===============================
+createCategory("ITEMS", ITEMS)
+createCategory("FOODS", FOODS)
+createCategory("EGGS", EGGS)
+
+-- ===============================
+-- UPDATE LOOP
+-- ===============================
+task.spawn(function()
+    while true do
+        for _, s in ipairs(slots) do
+            s.Label.Text = "x"..tostring(getAmount(s.Item))
+        end
+        task.wait(1)
+    end
+end)
+-- ===============================
+-- SAVE INVENTORY TO JSON (FLAT)
+-- ===============================
+local HttpService = game:GetService("HttpService")
+
+local function saveInventory()
+    if not writefile then return end
+
+    if not isfolder("Inventory") then
+        makefolder("Inventory")
+    end
+
+    local data = {}
+
+    for _, name in ipairs(ITEMS) do
+        data[name] = getAmount(name)
+    end
+
+    for _, name in ipairs(FOODS) do
+        data[name] = getAmount(name)
+    end
+
+    for _, name in ipairs(EGGS) do
+        data[name] = getAmount(name)
+    end
+
+    writefile(
+        "Inventory/" .. Player.Name .. "_materials.json",
+        HttpService:JSONEncode(data)
+    )
+end
+task.spawn(function()
+    while true do
+        for _, s in ipairs(slots) do
+            s.Label.Text = "x"..tostring(getAmount(s.Item))
+        end
+
+        saveInventory()
+
+        task.wait(1)
+    end
+end)
+
