@@ -217,11 +217,42 @@ task.spawn(function()
 end)
 
 -- [TWEEN & CONTROLS]
+
 local function TweenTo(cf)
-    local dist = (character.HumanoidRootPart.Position - cf.Position).Magnitude
-    character.HumanoidRootPart.Anchored = true
-    local tw = TweenService:Create(character.HumanoidRootPart, TweenInfo.new(dist/100, Enum.EasingStyle.Linear), {CFrame = cf})
-    tw:Play(); tw.Completed:Wait(); character.HumanoidRootPart.Anchored = false
+    local currentTween = nil -- Biến để kiểm soát, tránh chồng chéo Tween
+    -- 1. Cập nhật lại Character mới nhất (Phòng trường hợp bạn bị reset nhân vật)
+    local char = player.Character or player.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+    local hum = char:WaitForChild("Humanoid")
+
+    -- 2. Dừng Tween cũ nếu đang chạy để tránh "loạn" vị trí
+    if currentTween then 
+        currentTween:Cancel() 
+    end
+
+    -- 3. Tính toán khoảng cách và thời gian
+    local dist = (root.Position - cf.Position).Magnitude
+    if dist < 0.5 then return end -- Nếu đã ở đó rồi thì thôi
+
+    -- 4. Chuẩn bị trạng thái (Vô hiệu hóa vật lý tạm thời để Tween mượt hơn)
+    root.Anchored = true
+    
+    local tweenInfo = TweenInfo.new(
+        dist/100, 
+        Enum.EasingStyle.Linear, 
+        Enum.EasingDirection.Out
+    )
+
+    currentTween = TweenService:Create(root, tweenInfo, {CFrame = cf})
+    
+    -- 5. Thực thi và xử lý hoàn tất
+    currentTween:Play()
+    
+    -- Đợi Tween xong hoặc bị hủy
+    currentTween.Completed:Connect(function()
+        root.Anchored = false
+        currentTween = nil
+    end)
 end
 
 local function BuildTweenBtn(name, color, func)
