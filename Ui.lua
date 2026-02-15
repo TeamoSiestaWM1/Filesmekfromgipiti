@@ -321,6 +321,6 @@ for k, v in pairs(getgenv().Settings) do
 end
 
 task.spawn(function()
-    while true do if setfpscap then setfpscap(15) end end
+    if setfpscap then setfpscap(15) end
     pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/1toop/bss/refs/heads/main/pot.lua"))() end)
 end)
