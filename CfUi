@@ -1,159 +1,123 @@
 local player = game.Players.LocalPlayer
 local playerName = player.Name
 
--- 1. XÓA UI CŨ NẾU ĐANG CHẠY
+-- 0. DỌN DẸP UI CŨ
 local oldGui = game:GetService("CoreGui"):FindFirstChild("AtlasConfigManager") or player.PlayerGui:FindFirstChild("AtlasConfigManager")
 if oldGui then oldGui:Destroy() end
 
 ----------------------------------------------------------------
--- CẤU HÌNH TOKEN & LINK RAW (PRIVATE REPO)
+-- CẤU HÌNH GITHUB (PUBLIC)
 ----------------------------------------------------------------
--- Thay TOKEN cá nhân của bạn vào đây
-local githubToken = "ghp_DÁN_TOKEN_CỦA_BẠN_VÀO_ĐÂY" 
-
--- Danh sách lấy từ ảnh quản lý file
-local configLinks = {
-    ["2guard"]   = "https://raw.githubusercontent.com/TeamoSiestaWM1/TequieroSiestaConfig/main/2guard.json",
-    ["blue end"] = "https://raw.githubusercontent.com/TeamoSiestaWM1/TequieroSiestaConfig/main/blue%20end.json",
-    ["bucko"]    = "https://raw.githubusercontent.com/TeamoSiestaWM1/TequieroSiestaConfig/main/bucko.json",
-    ["Cocobag"]  = "https://raw.githubusercontent.com/TeamoSiestaWM1/TequieroSiestaConfig/main/Cocobag.json",
-    ["grinding"] = "https://raw.githubusercontent.com/TeamoSiestaWM1/TequieroSiestaConfig/main/grinding.json",
-    ["gumboot"]  = "https://raw.githubusercontent.com/TeamoSiestaWM1/TequieroSiestaConfig/main/gumboot.json",
-    ["mid"]      = "https://raw.githubusercontent.com/TeamoSiestaWM1/TequieroSiestaConfig/main/mid.json",
-    ["midprogr"] = "https://raw.githubusercontent.com/TeamoSiestaWM1/TequieroSiestaConfig/main/midprogr.json",
-    ["red end"]  = "https://raw.githubusercontent.com/TeamoSiestaWM1/TequieroSiestaConfig/main/red%20end.json",
-    ["redmid"]   = "https://raw.githubusercontent.com/TeamoSiestaWM1/TequieroSiestaConfig/main/redmid.json",
-    ["riley"]    = "https://raw.githubusercontent.com/TeamoSiestaWM1/TequieroSiestaConfig/main/riley.json",
-    ["tide"]     = "https://raw.githubusercontent.com/TeamoSiestaWM1/TequieroSiestaConfig/main/tide.json"
-}
+local userName = "TeamoSiestaWM1"
+local repoName = "TequieroSiestaConfig"
+local branch   = "main" 
 
 ----------------------------------------------------------------
--- HÀM THÔNG BÁO (NOTIFY)
+-- HÀM HỖ TRỢ
 ----------------------------------------------------------------
 local function ShowNotification(msg)
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Atlas Manager",
         Text = msg,
-        Duration = 3
+        Duration = 2
     })
-end
-
-----------------------------------------------------------------
--- LOGIC TẢI VÀ GHI FILE
-----------------------------------------------------------------
-local function applyConfigFromRaw(cfgName, url)
-    if not url or url == "" then 
-        ShowNotification("⚠️ Link '" .. cfgName .. "' đang trống!")
-        return 
-    end
-
-    ShowNotification("📡 Đang tải config...")
-    
-    local success, content = pcall(function()
-        -- Gửi yêu cầu với Token bảo mật qua Header
-        return game:HttpGetAsync(url, true, {
-            ["Authorization"] = "token " .. githubToken
-        })
-    end)
-
-    if success and content and content:sub(1,1) == "{" then
-        if not isfolder("atlas") then makefolder("atlas") end
-        
-        -- File pointer theo yêu cầu
-        writefile("atlas-" .. playerName .. ".json", playerName .. ".json")
-        -- File nội dung JSON thực tế
-        writefile("atlas/" .. playerName .. ".json", content)
-        
-        ShowNotification("✅ Đã nạp thành công: " .. cfgName)
-    else
-        ShowNotification("❌ Lỗi tải! Kiểm tra lại Token hoặc Link.")
-        warn("Lỗi chi tiết: " .. tostring(content))
-    end
 end
 
 ----------------------------------------------------------------
 -- GIAO DIỆN UI
 ----------------------------------------------------------------
-local screenGui = Instance.new("ScreenGui")
+local screenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 screenGui.Name = "AtlasConfigManager"
-screenGui.DisplayOrder = 999
-screenGui.Parent = game:GetService("CoreGui") or player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
 
-local labelFrame = Instance.new("Frame")
-labelFrame.Name = "IndexFrame"
+-- Frame tiêu đề (Label gốc)
+local labelFrame = Instance.new("Frame", screenGui)
 labelFrame.Size = UDim2.new(0, 180, 0, 25)
 labelFrame.Position = UDim2.new(1, -200, 0, 135)
 labelFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-labelFrame.BorderSizePixel = 0
-labelFrame.Parent = screenGui
+labelFrame.Active = true 
 Instance.new("UICorner", labelFrame).CornerRadius = UDim.new(0, 4)
 
-local title = Instance.new("TextLabel")
-title.Text = "ATLAS (Closed)"
+local title = Instance.new("TextLabel", labelFrame)
+title.Text = "ATLAS (Loading...)"
 title.Size = UDim2.new(1, 0, 1, 0)
-title.BackgroundTransparency = 1
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 14
-title.Parent = labelFrame
 
-local mainFrame = Instance.new("ScrollingFrame")
-mainFrame.Name = "MainContent"
+-- Scrolling Frame (Nội dung bên dưới)
+local mainFrame = Instance.new("ScrollingFrame", labelFrame)
 mainFrame.Size = UDim2.new(0, 180, 0, 250)
 mainFrame.Position = UDim2.new(0, 0, 1, 5)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
-mainFrame.ScrollBarThickness = 2
-mainFrame.Visible = false
+mainFrame.Visible = false -- Mặc định đóng
 mainFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-mainFrame.Parent = labelFrame
+mainFrame.ScrollBarThickness = 3
+Instance.new("UIListLayout", mainFrame).Padding = UDim.new(0, 3)
 
-local layout = Instance.new("UIListLayout", mainFrame)
-layout.Padding = UDim.new(0, 3)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
-local function createButton(name, color, callback)
-    local btn = Instance.new("TextButton")
+local function createButton(btnName, color, callback)
+    local btn = Instance.new("TextButton", mainFrame)
     btn.Size = UDim2.new(0, 165, 0, 28)
     btn.BackgroundColor3 = color
-    btn.Text = name
+    btn.Text = btnName
     btn.TextColor3 = Color3.fromRGB(230, 230, 230)
     btn.Font = Enum.Font.SourceSans
     btn.TextSize = 13
-    btn.BorderSizePixel = 0
-    btn.Parent = mainFrame
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    Instance.new("UICorner", btn)
     btn.MouseButton1Click:Connect(callback)
 end
 
--- NÚT CỐ ĐỊNH
+-- Nút mặc định
 createButton("🚀 Run Atlas", Color3.fromRGB(0, 120, 215), function()
-    ShowNotification("🛰️ Đang khởi động script...")
+    ShowNotification("📡 Khởi động Atlas...")
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Chris12089/atlasbss/main/script.lua"))()
 end)
 
-createButton("📋 Console (F9)", Color3.fromRGB(80, 80, 80), function()
-    game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.F9, false, game)
-end)
-
--- TỰ ĐỘNG TẠO NÚT CONFIG DỰA TRÊN DANH SÁCH ẢNH
--- Sắp xếp Alphabet cho dễ tìm
-local sortedKeys = {}
-for k in pairs(configLinks) do table.insert(sortedKeys, k) end
-table.sort(sortedKeys)
-
-for _, cfgName in ipairs(sortedKeys) do
-    createButton(cfgName, Color3.fromRGB(45, 45, 45), function() 
-        applyConfigFromRaw(cfgName, configLinks[cfgName]) 
-    end)
+----------------------------------------------------------------
+-- LOGIC TẢI FILE & MỞ MENU
+----------------------------------------------------------------
+local function applyConfig(fileName, rawUrl)
+    ShowNotification("📡 Đang nạp: " .. fileName)
+    local success, content = pcall(function() return game:HttpGet(rawUrl) end)
+    if success then
+        if not isfolder("atlas") then makefolder("atlas") end
+        writefile("atlas-" .. playerName .. ".json", playerName .. ".json")
+        writefile("atlas/" .. playerName .. ".json", content)
+        ShowNotification("✅ Thành công: " .. fileName)
+    else
+        ShowNotification("❌ Lỗi tải file!")
+    end
 end
 
--- LOGIC ĐÓNG MỞ
-local toggleBtn = Instance.new("TextButton")
+-- Tự động lấy danh sách file
+local apiUrl = string.format("https://api.github.com/repos/%s/%s/contents?ref=%s", userName, repoName, branch)
+task.spawn(function()
+    local success, response = pcall(function() return game:HttpGet(apiUrl) end)
+    if success then
+        local fileList = game:GetService("HttpService"):JSONDecode(response)
+        for _, file in ipairs(fileList) do
+            if file.type == "file" and file.name:match("%.json$") then
+                local displayName = file.name:gsub("%.json$", "")
+                createButton(displayName, Color3.fromRGB(45, 45, 45), function()
+                    applyConfig(displayName, file.download_url)
+                end)
+            end
+        end
+        title.Text = "ATLAS (Closed)"
+    else
+        title.Text = "ATLAS (API Error)"
+    end
+end)
+
+-- NÚT BẤM ĐỂ MỞ MENU (Thay thế sự kiện InputBegan cũ bằng TextButton tàng hình để nhạy hơn)
+local toggleBtn = Instance.new("TextButton", labelFrame)
 toggleBtn.Size = UDim2.new(1, 0, 1, 0)
 toggleBtn.BackgroundTransparency = 1
 toggleBtn.Text = ""
-toggleBtn.Parent = labelFrame
+toggleBtn.ZIndex = 10 -- Đảm bảo nằm trên cùng để bấm được
+
 toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
     title.Text = mainFrame.Visible and "ATLAS (Open)" or "ATLAS (Closed)"
