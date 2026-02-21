@@ -6,6 +6,10 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/TeamoSiestaWM1/Filesm
 ```lua
 loadstring(game:HttpGet("https://raw.githubusercontent.com/TeamoSiestaWM1/Filesmekfromgipiti/refs/heads/main/Checkonl.lua"))()
 ```
+## 🔗 checkonl script
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/TeamoSiestaWM1/Filesmekfromgipiti/refs/heads/main/CfUi"))()
+```
 ## 🔗 Simple Spy
 
 To use SimpleSpy, just run the following code (or copy the code from SimpleSpy.lua) in a supported executor.
