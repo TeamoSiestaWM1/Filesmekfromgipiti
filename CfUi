@@ -8,7 +8,7 @@ if oldGui then oldGui:Destroy() end
 ----------------------------------------------------------------
 -- CẤU HÌNH GITHUB
 ----------------------------------------------------------------
-local githubToken = "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"
+local githubToken = "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"
 local userName    = "TeamoSiestaWM1"
 local repoName    = "TequieroSiestaConfig"
 local branch      = "main" 
