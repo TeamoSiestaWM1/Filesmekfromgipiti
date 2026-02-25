@@ -6,11 +6,12 @@ local oldGui = game:GetService("CoreGui"):FindFirstChild("AtlasConfigManager") o
 if oldGui then oldGui:Destroy() end
 
 ----------------------------------------------------------------
--- CẤU HÌNH GITHUB (PUBLIC)
+-- CẤU HÌNH GITHUB
 ----------------------------------------------------------------
-local userName = "TeamoSiestaWM1"
-local repoName = "TequieroSiestaConfig"
-local branch   = "main" 
+local githubToken = "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"
+local userName    = "TeamoSiestaWM1"
+local repoName    = "TequieroSiestaConfig"
+local branch      = "main" 
 
 ----------------------------------------------------------------
 -- HÀM HỖ TRỢ
@@ -30,12 +31,12 @@ local screenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 screenGui.Name = "AtlasConfigManager"
 screenGui.ResetOnSpawn = false
 
--- Frame tiêu đề (Label gốc)
 local labelFrame = Instance.new("Frame", screenGui)
 labelFrame.Size = UDim2.new(0, 180, 0, 25)
 labelFrame.Position = UDim2.new(1, -200, 0, 135)
 labelFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 labelFrame.Active = true 
+labelFrame.Draggable = true
 Instance.new("UICorner", labelFrame).CornerRadius = UDim.new(0, 4)
 
 local title = Instance.new("TextLabel", labelFrame)
@@ -46,13 +47,12 @@ title.BackgroundTransparency = 1
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 14
 
--- Scrolling Frame (Nội dung bên dưới)
 local mainFrame = Instance.new("ScrollingFrame", labelFrame)
 mainFrame.Size = UDim2.new(0, 180, 0, 250)
 mainFrame.Position = UDim2.new(0, 0, 1, 5)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
-mainFrame.Visible = false -- Mặc định đóng
+mainFrame.Visible = false
 mainFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 mainFrame.ScrollBarThickness = 3
 Instance.new("UIListLayout", mainFrame).Padding = UDim.new(0, 3)
@@ -69,19 +69,29 @@ local function createButton(btnName, color, callback)
     btn.MouseButton1Click:Connect(callback)
 end
 
--- Nút mặc định
 createButton("🚀 Run Atlas", Color3.fromRGB(0, 120, 215), function()
-    ShowNotification("📡 Khởi động Atlas...")
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Chris12089/atlasbss/main/script.lua"))()
 end)
 
 ----------------------------------------------------------------
--- LOGIC TẢI FILE & MỞ MENU
+-- LOGIC TẢI FILE (FIXED HTTPGET)
 ----------------------------------------------------------------
 local function applyConfig(fileName, rawUrl)
     ShowNotification("📡 Đang nạp: " .. fileName)
-    local success, content = pcall(function() return game:HttpGet(rawUrl) end)
-    if success then
+    
+    -- Fix lỗi cast bool to HttpRequestType bằng cách dùng request dictionary
+    local success, response = pcall(function()
+        return request({
+            Url = rawUrl,
+            Method = "GET",
+            Headers = {
+                ["Authorization"] = "token " .. githubToken
+            }
+        })
+    end)
+
+    if success and response.Success then
+        local content = response.Body
         if not isfolder("atlas") then makefolder("atlas") end
         writefile("atlas-" .. playerName .. ".json", playerName .. ".json")
         writefile("atlas/" .. playerName .. ".json", content)
@@ -91,12 +101,21 @@ local function applyConfig(fileName, rawUrl)
     end
 end
 
--- Tự động lấy danh sách file
+-- Tự động lấy danh sách file qua API
 local apiUrl = string.format("https://api.github.com/repos/%s/%s/contents?ref=%s", userName, repoName, branch)
 task.spawn(function()
-    local success, response = pcall(function() return game:HttpGet(apiUrl) end)
-    if success then
-        local fileList = game:GetService("HttpService"):JSONDecode(response)
+    local success, response = pcall(function()
+        return request({
+            Url = apiUrl,
+            Method = "GET",
+            Headers = {
+                ["Authorization"] = "token " .. githubToken
+            }
+        })
+    end)
+
+    if success and response.Success then
+        local fileList = game:GetService("HttpService"):JSONDecode(response.Body)
         for _, file in ipairs(fileList) do
             if file.type == "file" and file.name:match("%.json$") then
                 local displayName = file.name:gsub("%.json$", "")
@@ -111,13 +130,11 @@ task.spawn(function()
     end
 end)
 
--- NÚT BẤM ĐỂ MỞ MENU (Thay thế sự kiện InputBegan cũ bằng TextButton tàng hình để nhạy hơn)
 local toggleBtn = Instance.new("TextButton", labelFrame)
 toggleBtn.Size = UDim2.new(1, 0, 1, 0)
 toggleBtn.BackgroundTransparency = 1
 toggleBtn.Text = ""
-toggleBtn.ZIndex = 10 -- Đảm bảo nằm trên cùng để bấm được
-
+toggleBtn.ZIndex = 10
 toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
     title.Text = mainFrame.Visible and "ATLAS (Open)" or "ATLAS (Closed)"
