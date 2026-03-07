@@ -218,56 +218,93 @@ end)
 
 -- [TWEEN & CONTROLS]
 
+local currentTween = nil -- Biến cục bộ để quản lý Tween hiện tại
+
 local function TweenTo(cf)
-    local currentTween = nil -- Biến để kiểm soát, tránh chồng chéo Tween
-    -- 1. Cập nhật lại Character mới nhất (Phòng trường hợp bạn bị reset nhân vật)
+    _G.StopTweening = false -- Reset trạng thái dừng mỗi khi bắt đầu Tween mới
+    
     local char = player.Character or player.CharacterAdded:Wait()
     local root = char:WaitForChild("HumanoidRootPart")
-    local hum = char:WaitForChild("Humanoid")
 
-    -- 2. Dừng Tween cũ nếu đang chạy để tránh "loạn" vị trí
-    if currentTween then 
-        currentTween:Cancel() 
-    end
+    if currentTween then currentTween:Cancel() end
 
-    -- 3. Tính toán khoảng cách và thời gian
     local dist = (root.Position - cf.Position).Magnitude
-    if dist < 0.5 then return end -- Nếu đã ở đó rồi thì thôi
+    if dist < 0.5 then return end
 
-    -- 4. Chuẩn bị trạng thái (Vô hiệu hóa vật lý tạm thời để Tween mượt hơn)
     root.Anchored = true
     
-    local tweenInfo = TweenInfo.new(
-        dist/100, 
-        Enum.EasingStyle.Linear, 
-        Enum.EasingDirection.Out
-    )
-
+    local tweenInfo = TweenInfo.new(dist/100, Enum.EasingStyle.Linear)
     currentTween = TweenService:Create(root, tweenInfo, {CFrame = cf})
     
-    -- 5. Thực thi và xử lý hoàn tất
     currentTween:Play()
-    
-    -- Đợi Tween xong hoặc bị hủy
-    currentTween.Completed:Connect(function()
-        root.Anchored = false
-        currentTween = nil
+
+    -- Vòng lặp kiểm tra nếu người dùng bấm STOP
+    task.spawn(function()
+        while currentTween and currentTween.PlaybackState == Enum.PlaybackState.Playing do
+            if _G.StopTweening then
+                currentTween:Cancel()
+                root.Anchored = false
+                break
+            end
+            task.wait(0.1)
+        end
     end)
+
+    currentTween.Completed:Wait()
+    root.Anchored = false
+    currentTween = nil
 end
 
 local function BuildTweenBtn(name, color, func)
     local b = Instance.new("TextButton", tweenScroll); b.Size = UDim2.new(1, -10, 0, 42); b.Text = name; b.TextSize = 20; b.BackgroundColor3 = color; b.TextColor3 = Color3.new(1, 1, 1); Instance.new("UICorner", b); b.MouseButton1Click:Connect(func); return b
 end
 
-BuildTweenBtn("Blender", Color3.fromRGB(70, 130, 180), function() TweenTo(CFrame.new(-424, 69, 37)) end)
-BuildTweenBtn("Diamond Mask", Color3.fromRGB(0, 180, 180), function() TweenTo(CFrame.new(-334, 132, -392)) end)
-BuildTweenBtn("Royal Jelly Shop", Color3.fromRGB(180, 120, 0), function() TweenTo(CFrame.new(-293.1, 52.2, 68.2)) end)
-BuildTweenBtn("Petal Shop", Color3.fromRGB(255, 120, 200), function() TweenTo(CFrame.new(-500.5, 51.5, 466.1)) end)
-BuildTweenBtn("Nectar Conserver", Color3.fromRGB(120, 255, 120), function() TweenTo(CFrame.new(-415.5, 101.0, 343.2)) end)
-BuildTweenBtn("Dapper Shop", Color3.fromRGB(15, 97, 0), function() TweenTo(CFrame.new(535.4, 137.8, -319.6)) end)
-BuildTweenBtn("Star Amulet", Color3.fromRGB(0, 245, 16), function() TweenTo(CFrame.new(169.3, 72.2, 358.0)) end)
-BuildTweenBtn("Sticker Printer", Color3.fromRGB(166, 0, 255), function() TweenTo(CFrame.new(205.6, 161.7, -194.6)) end)
-BuildTweenBtn("Gifted Bucko Bee", Color3.fromRGB(64, 0, 255), function() TweenTo(CFrame.new(298.5, 61.4, 107.1)) end)
+BuildTweenBtn("Blender", Color3.fromRGB(35, 35, 35), function() TweenTo(CFrame.new(-424, 69, 37)) end)
+BuildTweenBtn("Diamond Mask", Color3.fromRGB(35, 35, 35), function() TweenTo(CFrame.new(-334, 132, -392)) end)
+BuildTweenBtn("Royal Jelly Shop", Color3.fromRGB(35, 35, 35), function() TweenTo(CFrame.new(-293.1, 52.2, 68.2)) end)
+BuildTweenBtn("Petal Shop", Color3.fromRGB(35, 35, 35), function() TweenTo(CFrame.new(-500.5, 51.5, 466.1)) end)
+BuildTweenBtn("Nectar Conserver", Color3.fromRGB(35, 35, 35), function() TweenTo(CFrame.new(-415.5, 101.0, 343.2)) end)
+BuildTweenBtn("Dapper Shop", Color3.fromRGB(35, 35, 35), function() TweenTo(CFrame.new(535.4, 137.8, -319.6)) end)
+BuildTweenBtn("Star Amulet", Color3.fromRGB(35, 35, 35), function() TweenTo(CFrame.new(169.3, 72.2, 358.0)) end)
+BuildTweenBtn("Sticker Printer",Color3.fromRGB(35, 35, 35), function() TweenTo(CFrame.new(205.6, 161.7, -194.6)) end)
+BuildTweenBtn("Gifted Bucko Bee", Color3.fromRGB(35, 35, 35), function() TweenTo(CFrame.new(298.5, 61.4, 107.1)) end)
+BuildTweenBtn("Diamond Egg", Color3.fromRGB(35, 35, 35), function()
+    local pos = Vector3.new(41.74, 151.06, -531.89)
+    Notify("Teleport", "Đang tới Diamond Egg...")
+    TweenTo(CFrame.new(pos))
+end)
+BuildTweenBtn("Star Jelly", Color3.fromRGB(35, 35, 35), function()
+    local starJellyList = {
+        Vector3.new(-412.99, 19.29, 467.02),
+        Vector3.new(524.51, 151.90, -411.88),
+        Vector3.new(-436.27, 94.32, 49.61),
+        Vector3.new(-481.07, 71.71, -0.26)
+    }
+    
+    task.spawn(function()
+        _G.StopTweening = false
+        Notify("Teleport", "Bắt đầu nhặt chuỗi Star Jelly...")
+        for i, pos in ipairs(starJellyList) do
+            if _G.StopTweening then break end -- Dừng vòng lặp nếu bấm nút STOP
+            
+            Notify("Star Jelly", "Đang tới điểm " .. i .. "/5")
+            TweenTo(CFrame.new(pos))
+            task.wait(1.5)
+        end
+        if not _G.StopTweening then
+            Notify("Hoàn tất", "Đã thu thập xong Star Jelly!")
+        end
+    end)
+end)
+
+BuildTweenBtn("🛑 STOP TWEEN", Color3.fromRGB(150, 0, 0), function()
+    _G.StopTweening = true
+    if currentTween then currentTween:Cancel() end
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.Anchored = false
+    end
+    Notify("STOP", "Đã dừng toàn bộ quá trình di chuyển!")
+end)
 
 local function BuildControlBtn(text, y, color, func)
     local b = Instance.new("TextButton", col3); b.Size = UDim2.new(1, -20, 0, 50); b.Position = UDim2.new(0, 10, 0, y); b.Text = text; b.TextSize = 22; b.BackgroundColor3 = color; b.TextColor3 = Color3.new(1, 1, 1); Instance.new("UICorner", b); b.MouseButton1Click:Connect(func)
