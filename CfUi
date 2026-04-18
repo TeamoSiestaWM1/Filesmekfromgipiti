@@ -70,6 +70,7 @@ local function createButton(btnName, color, callback)
 end
 
 createButton("🚀 Run Atlas", Color3.fromRGB(0, 120, 215), function()
+   _G.unlocktween = true
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Chris12089/atlasbss/main/script.lua"))()
 end)
 
