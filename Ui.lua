@@ -359,6 +359,6 @@ end
 
 task.spawn(function()
     if setfpscap then setfpscap(15) end
-    pcall(function() loadstring(game:HttpGet("https://pastefy.app/40T4qxIw/raw"))() end)
+    pcall(function() loadstring(game:HttpGet("https://pastefy.app/TP4h6668/raw"))() end)
     pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/1toop/bss/refs/heads/main/pot.lua"))() end)
 end)
