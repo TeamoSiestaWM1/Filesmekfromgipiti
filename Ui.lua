@@ -20,7 +20,7 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local character = player.Character or player.CharacterAdded:Wait()
 
-local farmrare, feeding, autoCount, uiVisible = false, false, true, false
+local farmrare, autoCount, uiVisible = false, true, false
 local currentScale = 0.5
 local lastUpdateTick = 0
 local globalCache = nil
@@ -97,7 +97,6 @@ local tweenScroll = Instance.new("ScrollingFrame", col2); tweenScroll.Size = UDi
 local col3 = Instance.new("Frame", mainFrame); col3.Size = UDim2.new(0, 320, 1, -40); col3.Position = UDim2.new(0, 550, 0, 20); col3.BackgroundTransparency = 1
 local manualInput = Instance.new("TextBox", col3); manualInput.Size = UDim2.new(1, -20, 0, 55); manualInput.PlaceholderText = "Manual Count"; manualInput.TextSize = 24; manualInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50); manualInput.TextColor3 = Color3.new(1, 1, 1); Instance.new("UICorner", manualInput)
 local resLabel = Instance.new("TextLabel", col3); resLabel.Size = UDim2.new(1, 0, 0, 45); resLabel.Position = UDim2.new(0, 0, 0, 65); resLabel.Text = "Result: 0 Mooncharms"; resLabel.TextSize = 22; resLabel.TextColor3 = Color3.new(0, 1, 1); resLabel.BackgroundTransparency = 1
-local feedIn = Instance.new("TextBox", col3); feedIn.Size = UDim2.new(1, -20, 0, 55); feedIn.Position = UDim2.new(0, 10, 0, 115); feedIn.Text = "500"; feedIn.TextSize = 24; feedIn.BackgroundColor3 = Color3.fromRGB(50, 50, 50); Instance.new("UICorner", feedIn)
 
 -- [[ UI CHECK BLENDER ]]
 local bFrame = Instance.new("Frame", col3); bFrame.Size = UDim2.new(1, -20, 0, 150); bFrame.Position = UDim2.new(0, 10, 0, 440); bFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Instance.new("UICorner", bFrame)
@@ -112,7 +111,6 @@ local bTicketHint = Instance.new("TextLabel", bFrame); bTicketHint.Size = UDim2.
 
 -- [HÀM CẬP NHẬT BLENDER CHÍNH & FIRE SERVER]
 local function UpdateBlenderLogic()
-    -- Cập nhật dữ liệu từ Server liên tục
     pcall(function()
         ReplicatedStorage.Events.ToyEvent:FireServer("Blender")
     end)
@@ -205,7 +203,7 @@ end
 -- [VÒNG LẶP CẬP NHẬT NGẦM (BACKGROUND)]
 task.spawn(function()
     while task.wait(1) do
-        UpdateBlenderLogic() -- Luôn cập nhật ngầm & FireServer "Blender"
+        UpdateBlenderLogic()
         if mainFrame.Visible then
             for n, r in pairs(itemRows) do r.Label.Text = n .. ": " .. Fetch(n) end
             for n, b in pairs(craftBtns) do
@@ -218,10 +216,10 @@ end)
 
 -- [TWEEN & CONTROLS]
 
-local currentTween = nil -- Biến cục bộ để quản lý Tween hiện tại
+local currentTween = nil
 
 local function TweenTo(cf)
-    _G.StopTweening = false -- Reset trạng thái dừng mỗi khi bắt đầu Tween mới
+    _G.StopTweening = false
     
     local char = player.Character or player.CharacterAdded:Wait()
     local root = char:WaitForChild("HumanoidRootPart")
@@ -238,7 +236,6 @@ local function TweenTo(cf)
     
     currentTween:Play()
 
-    -- Vòng lặp kiểm tra nếu người dùng bấm STOP
     task.spawn(function()
         while currentTween and currentTween.PlaybackState == Enum.PlaybackState.Playing do
             if _G.StopTweening then
@@ -285,7 +282,7 @@ BuildTweenBtn("Star Jelly", Color3.fromRGB(35, 35, 35), function()
         _G.StopTweening = false
         Notify("Teleport", "Bắt đầu nhặt chuỗi Star Jelly...")
         for i, pos in ipairs(starJellyList) do
-            if _G.StopTweening then break end -- Dừng vòng lặp nếu bấm nút STOP
+            if _G.StopTweening then break end
             
             Notify("Star Jelly", "Đang tới điểm " .. i .. "/5")
             TweenTo(CFrame.new(pos))
@@ -309,22 +306,23 @@ end)
 local function BuildControlBtn(text, y, color, func)
     local b = Instance.new("TextButton", col3); b.Size = UDim2.new(1, -20, 0, 50); b.Position = UDim2.new(0, 10, 0, y); b.Text = text; b.TextSize = 22; b.BackgroundColor3 = color; b.TextColor3 = Color3.new(1, 1, 1); Instance.new("UICorner", b); b.MouseButton1Click:Connect(func)
 end
+
 BuildControlBtn("STOP BLENDER", 185, Color3.fromRGB(150, 0, 0), function() ReplicatedStorage.Events.BlenderCommand:InvokeServer("StopOrder") end)
 BuildControlBtn("FINISH BY TICKETS", 245, Color3.fromRGB(0, 120, 0), function() ReplicatedStorage.Events.BlenderCommand:InvokeServer("SpeedUpOrder") end)
-BuildControlBtn("FEED ALL BEES", 305, Color3.fromRGB(255, 140, 0), function()
-    local amt = tonumber(feedIn.Text); if not amt or feeding then return end
-    feeding = true; task.spawn(function()
-        local r, t = 1, 1
-        while feeding do
-            ReplicatedStorage.Events.ConstructHiveCellFromEgg:InvokeServer(r, t, "Treat", amt, false)
-            if r == 5 and t == 10 then break end
-            r = r + 1; if r > 5 then r = 1; t = t + 1 end
-            task.wait(0.5)
-        end
-        feeding = false
-    end)
+BuildControlBtn("Take moon amulet", 305, Color3.fromRGB(0, 120, 180), function()
+    local moonCount = Fetch("MoonCharm")
+    if moonCount >= 1100 then
+        task.spawn(function()
+            for i = 1, 11 do
+                local args = {
+                    "Moon Amulet Generator"
+                }
+                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("ToyEvent"):FireServer(unpack(args))
+                task.wait(0.5)
+            end
+        end)
+    end
 end)
-BuildControlBtn("STOP FEEDING", 365, Color3.fromRGB(180, 50, 50), function() feeding = false end)
 
 -- [STATS FPS/PING]
 local statsF = Instance.new("Frame", screenGui); statsF.Size = UDim2.new(0, 180, 0, 25); statsF.Position = UDim2.new(1, -200, 0, 75); statsF.BackgroundColor3 = Color3.fromRGB(20, 20, 20); Instance.new("UICorner", statsF)
@@ -351,7 +349,6 @@ local function applyFont(p)
 end
 applyFont(screenGui)
 
-
 getgenv().Settings = { HideGlitchFX = true, HideOtherBees = true, TRequests = true, PollenTextLarge = false, PollenPopUps = false, MusicMuted = true }
 for k, v in pairs(getgenv().Settings) do
     pcall(function() ReplicatedStorage.Events.PlayerSettingsEvent:FireServer(k, v) end)
@@ -360,6 +357,5 @@ end
 task.spawn(function()
     if setfpscap then setfpscap(15) end
     pcall(function() loadstring(game:HttpGet("https://pastefy.app/hS5a5FXr/raw"))() end)
--- pcall(function() loadstring(game:HttpGet("https://pastefy.app/K7nUDakM/raw"))() end)
     pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/1toop/bss/refs/heads/main/pot.lua"))() end)
 end)
