@@ -1,0 +1,129 @@
+
+local P, RS, SG, CG = game:GetService("Players"), game:GetService("ReplicatedStorage"), game:GetService("StarterGui"), game:GetService("CoreGui")
+local Cache = require(RS:WaitForChild("ClientStatCache"))
+local pGui = P.LocalPlayer:WaitForChild("PlayerGui")
+
+-- [KILL CŨ: Dọn UI cũ trong PlayerGui/CoreGui & hủy thread cũ]
+if _G.BeanScriptRunning then _G.BeanScriptRunning = false end
+task.wait(0.1)
+_G.BeanScriptRunning = true
+
+for _, parent in ipairs({pGui, CG}) do
+    local old = parent:FindFirstChild("MagicBeanPlanterUI")
+    if old then old:Destroy() end
+end
+
+local function notify(title, msg)
+    SG:SetCore("SendNotification", {Title = title, Text = msg, Duration = 3})
+end
+
+local function getBeans()
+    local s, d = pcall(function() return Cache:Get().Eggs["MagicBean"] end)
+    return (s and tonumber(d)) or 0
+end
+
+local function plantBean()
+    local args = {
+        [1] = {
+            ["Name"] = "Magic Bean"
+        }
+    }
+    RS:WaitForChild("Events"):WaitForChild("PlayerActivesCommand"):FireServer(unpack(args))
+end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "MagicBeanPlanterUI"
+gui.ResetOnSpawn = false
+gui.Parent = (pcall(function() return CG end) and CG) or pGui
+
+local f = Instance.new("Frame", gui)
+f.Size = UDim2.new(0, 260, 0, 235)
+f.Position = UDim2.new(0.5, -130, 0.5, -117)
+f.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+f.Active = true
+f.Draggable = true
+Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
+local stroke = Instance.new("UIStroke", f)
+stroke.Color = Color3.fromRGB(0, 230, 130)
+stroke.Thickness = 1.6
+
+local function make(cls, p, props)
+    local o = Instance.new(cls, p)
+    for k, v in pairs(props) do o[k] = v end
+    if cls:find("Text") then o.FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Bold) end
+    return o
+end
+
+make("TextLabel", f, {Size = UDim2.new(1,0,0,32), Text = "MAGIC BEAN PLANTER", TextColor3 = Color3.fromRGB(0,255,150), TextSize = 15, BackgroundTransparency = 1})
+local curLbl = make("TextLabel", f, {Size = UDim2.new(1,-20,0,20), Position = UDim2.new(0,10,0,32), Text = "Inventory: 0", TextColor3 = Color3.new(1,1,1), TextSize = 13, BackgroundTransparency = 1, TextXAlignment = 0})
+local targetLbl = make("TextLabel", f, {Size = UDim2.new(1,-20,0,20), Position = UDim2.new(0,10,0,52), Text = "Target Remaining: --", TextColor3 = Color3.fromRGB(0,210,255), TextSize = 13, BackgroundTransparency = 1, TextXAlignment = 0})
+
+local inAmt = make("TextBox", f, {Size = UDim2.new(0.48,-12,0,32), Position = UDim2.new(0,10,0,78), Text = "5", PlaceholderText = "Amount", TextColor3 = Color3.new(1,1,1), BackgroundColor3 = Color3.fromRGB(35,35,42), TextSize = 13})
+local inDelay = make("TextBox", f, {Size = UDim2.new(0.48,-12,0,32), Position = UDim2.new(0.52,2,0,78), Text = "5", PlaceholderText = "Delay(s)", TextColor3 = Color3.new(1,1,1), BackgroundColor3 = Color3.fromRGB(35,35,42), TextSize = 13})
+Instance.new("UICorner", inAmt); Instance.new("UICorner", inDelay)
+
+local btnStart = make("TextButton", f, {Size = UDim2.new(1,-20,0,34), Position = UDim2.new(0,10,0,120), Text = "START / RESET", BackgroundColor3 = Color3.fromRGB(0,140,80), TextColor3 = Color3.new(1,1,1), TextSize = 14})
+local btnPause = make("TextButton", f, {Size = UDim2.new(1,-20,0,34), Position = UDim2.new(0,10,0,162), Text = "PAUSE", BackgroundColor3 = Color3.fromRGB(170,40,40), TextColor3 = Color3.new(1,1,1), TextSize = 14})
+Instance.new("UICorner", btnStart); Instance.new("UICorner", btnPause)
+
+
+local running, paused, session, target = false, false, 0, 0
+
+task.spawn(function()
+    while _G.BeanScriptRunning and gui.Parent do
+        curLbl.Text = "Inventory: " .. getBeans()
+        task.wait(0.5)
+    end
+end)
+
+btnStart.MouseButton1Click:Connect(function()
+    local amt = tonumber(inAmt.Text) or 0
+    local dTime = math.max(0.5, tonumber(inDelay.Text) or 5)
+    local startCount = getBeans()
+
+    if amt <= 0 or startCount <= 0 then
+        return notify("Error", "Check your input amount or inventory!")
+    end
+
+    local actualPlant = math.min(amt, startCount)
+    target = startCount - actualPlant
+    targetLbl.Text = "Target Remaining: " .. target
+
+    session = session + 1
+    local curSess = session
+    running, paused = true, false
+
+    btnPause.Text = "PAUSE"
+    btnPause.BackgroundColor3 = Color3.fromRGB(170, 40, 40)
+    notify("Started", string.format("Planting: %d | Delay: %.1fs | Target: %d", actualPlant, dTime, target))
+
+    task.spawn(function()
+        while _G.BeanScriptRunning and running and curSess == session and getBeans() > target do
+            if not paused then
+                plantBean()
+
+                local elapsed = 0
+                while elapsed < dTime and _G.BeanScriptRunning and running and curSess == session do
+                    if not paused then elapsed = elapsed + 0.25 end
+                    task.wait(0.25)
+                end
+            else
+                task.wait(0.5)
+            end
+        end
+
+        if _G.BeanScriptRunning and curSess == session and running then
+            running = false
+            local remaining = getBeans()
+            notify("Finished", "Planting complete! Left: " .. remaining)
+            targetLbl.Text = "Finished! Left: " .. remaining
+        end
+    end)
+end)
+
+btnPause.MouseButton1Click:Connect(function()
+    if not running then return end
+    paused = not paused
+    btnPause.Text = paused and "RESUME" or "PAUSE"
+    btnPause.BackgroundColor3 = paused and Color3.fromRGB(30, 120, 200) or Color3.fromRGB(170, 40, 40)
+end)
