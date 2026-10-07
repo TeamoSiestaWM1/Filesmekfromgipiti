@@ -6,6 +6,7 @@
     - BLENDER STATUS: BACKGROUND UPDATE (CHẠY NGẦM 24/7)
     - TOY EVENT: TỰ ĐỘNG CẬP NHẬT BLENDER QUA FIRESERVER
     - DATA SOURCE: BlenderState (FIXED)
+    - ADDON: UNIVERSAL PATH & TEXT EXTRACTOR TWEEN (BELOW MOON AMULET)
     ================================================================================
 ]]
 
@@ -15,6 +16,7 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Stats = game:GetService("Stats")
 local StarterGui = game:GetService("StarterGui")
+local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -98,8 +100,73 @@ local col3 = Instance.new("Frame", mainFrame); col3.Size = UDim2.new(0, 320, 1, 
 local manualInput = Instance.new("TextBox", col3); manualInput.Size = UDim2.new(1, -20, 0, 55); manualInput.PlaceholderText = "Manual Count"; manualInput.TextSize = 24; manualInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50); manualInput.TextColor3 = Color3.new(1, 1, 1); Instance.new("UICorner", manualInput)
 local resLabel = Instance.new("TextLabel", col3); resLabel.Size = UDim2.new(1, 0, 0, 45); resLabel.Position = UDim2.new(0, 0, 0, 65); resLabel.Text = "Result: 0 Mooncharms"; resLabel.TextSize = 22; resLabel.TextColor3 = Color3.new(0, 1, 1); resLabel.BackgroundTransparency = 1
 
--- [[ UI CHECK BLENDER ]]
-local bFrame = Instance.new("Frame", col3); bFrame.Size = UDim2.new(1, -20, 0, 150); bFrame.Position = UDim2.new(0, 10, 0, 440); bFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Instance.new("UICorner", bFrame)
+local function BuildControlBtn(text, y, color, func)
+    local b = Instance.new("TextButton", col3); b.Size = UDim2.new(1, -20, 0, 50); b.Position = UDim2.new(0, 10, 0, y); b.Text = text; b.TextSize = 22; b.BackgroundColor3 = color; b.TextColor3 = Color3.new(1, 1, 1); Instance.new("UICorner", b); b.MouseButton1Click:Connect(func)
+end
+
+BuildControlBtn("STOP BLENDER", 185, Color3.fromRGB(150, 0, 0), function() ReplicatedStorage.Events.BlenderCommand:InvokeServer("StopOrder") end)
+BuildControlBtn("FINISH BY TICKETS", 245, Color3.fromRGB(0, 120, 0), function() ReplicatedStorage.Events.BlenderCommand:InvokeServer("SpeedUpOrder") end)
+BuildControlBtn("Take moon amulet", 305, Color3.fromRGB(0, 120, 180), function()
+    local moonCount = Fetch("MoonCharm")
+    if moonCount >= 1100 then
+        task.spawn(function()
+            for i = 1, 11 do
+                local args = {
+                    "Moon Amulet Generator"
+                }
+                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("ToyEvent"):FireServer(unpack(args))
+                task.wait(0.5)
+            end
+        end)
+    end
+end)
+
+-- [[ KHU VỰC TÌM KIẾM PATH / TÊN VÀ TWEEN NẰM NGAY BÊN DƯỚI TAKE MOON AMULET (Y = 365) ]]
+local customSearchBox = Instance.new("TextBox", col3)
+customSearchBox.Size = UDim2.new(1, -150, 0, 48)
+customSearchBox.Position = UDim2.new(0, 10, 0, 365)
+customSearchBox.PlaceholderText = 'Nhập tên hoặc path ["..."]'
+customSearchBox.Text = ""
+customSearchBox.TextSize = 15
+customSearchBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+customSearchBox.TextColor3 = Color3.new(1, 1, 1)
+customSearchBox.ClearTextOnFocus = false
+Instance.new("UICorner", customSearchBox).CornerRadius = UDim.new(0, 8)
+
+-- Tự động xóa sạch chữ trong ô khi nhấp vào (Focused)
+customSearchBox.Focused:Connect(function()
+    customSearchBox.Text = ""
+end)
+
+local customTweenBtn = Instance.new("TextButton", col3)
+customTweenBtn.Size = UDim2.new(0, 68, 0, 48)
+customTweenBtn.Position = UDim2.new(1, -135, 0, 365)
+customTweenBtn.Text = "TWEEN"
+customTweenBtn.TextSize = 15
+customTweenBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 85)
+customTweenBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", customTweenBtn).CornerRadius = UDim.new(0, 8)
+
+local customStopBtn = Instance.new("TextButton", col3)
+customStopBtn.Size = UDim2.new(0, 52, 0, 48)
+customStopBtn.Position = UDim2.new(1, -62, 0, 365)
+customStopBtn.Text = "STOP"
+customStopBtn.TextSize = 14
+customStopBtn.BackgroundColor3 = Color3.fromRGB(160, 35, 35)
+customStopBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", customStopBtn).CornerRadius = UDim.new(0, 8)
+
+customStopBtn.MouseButton1Click:Connect(function()
+    _G.StopTweening = true
+    if currentTween then currentTween:Cancel() end
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.Anchored = false
+    end
+    Notify("STOP", "Đã dừng toàn bộ di chuyển!")
+end)
+
+-- [[ UI CHECK BLENDER (Đặt tại Y = 425 tránh đè lên khu vực Custom Tween) ]]
+local bFrame = Instance.new("Frame", col3); bFrame.Size = UDim2.new(1, -20, 0, 150); bFrame.Position = UDim2.new(0, 10, 0, 425); bFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Instance.new("UICorner", bFrame)
 local bStroke = Instance.new("UIStroke", bFrame); bStroke.Color = Color3.fromRGB(0, 160, 255); bStroke.Thickness = 2
 local bIcon = Instance.new("ImageLabel", bFrame); bIcon.Size = UDim2.new(0, 50, 0, 50); bIcon.Position = UDim2.new(0, 10, 0, 10); bIcon.BackgroundTransparency = 1
 local bName = Instance.new("TextLabel", bFrame); bName.Size = UDim2.new(1, -70, 0, 25); bName.Position = UDim2.new(0, 65, 0, 10); bName.Text = "BLENDER: IDLE"; bName.TextColor3 = Color3.new(1,1,1); bName.TextXAlignment = Enum.TextXAlignment.Left; bName.BackgroundTransparency = 1; bName.TextSize = 20
@@ -303,25 +370,95 @@ BuildTweenBtn("🛑 STOP TWEEN", Color3.fromRGB(150, 0, 0), function()
     Notify("STOP", "Đã dừng toàn bộ quá trình di chuyển!")
 end)
 
-local function BuildControlBtn(text, y, color, func)
-    local b = Instance.new("TextButton", col3); b.Size = UDim2.new(1, -20, 0, 50); b.Position = UDim2.new(0, 10, 0, y); b.Text = text; b.TextSize = 22; b.BackgroundColor3 = color; b.TextColor3 = Color3.new(1, 1, 1); Instance.new("UICorner", b); b.MouseButton1Click:Connect(func)
+-- [[ LOGIC TRÍCH XUẤT CƠ CHẾ TÌM KIẾM THEO TÊN / PATH ]]
+local function ExtractCFrameFromInstance(inst)
+    if not inst then return nil end
+    if inst:IsA("BasePart") then
+        return inst.CFrame
+    elseif inst:IsA("Model") then
+        if inst.PrimaryPart then
+            return inst.PrimaryPart.CFrame
+        end
+        local pivot = inst:GetPivot()
+        if pivot and pivot ~= CFrame.new(0, 0, 0) then
+            return pivot
+        end
+    end
+    local firstPart = inst:FindFirstChildWhichIsA("BasePart", true)
+    if firstPart then
+        return firstPart.CFrame
+    end
+    return nil
 end
 
-BuildControlBtn("STOP BLENDER", 185, Color3.fromRGB(150, 0, 0), function() ReplicatedStorage.Events.BlenderCommand:InvokeServer("StopOrder") end)
-BuildControlBtn("FINISH BY TICKETS", 245, Color3.fromRGB(0, 120, 0), function() ReplicatedStorage.Events.BlenderCommand:InvokeServer("SpeedUpOrder") end)
-BuildControlBtn("Take moon amulet", 305, Color3.fromRGB(0, 120, 180), function()
-    local moonCount = Fetch("MoonCharm")
-    if moonCount >= 1100 then
-        task.spawn(function()
-            for i = 1, 11 do
-                local args = {
-                    "Moon Amulet Generator"
-                }
-                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("ToyEvent"):FireServer(unpack(args))
-                task.wait(0.5)
-            end
-        end)
+local function ParseTargetName(rawInput)
+    local text = rawInput:match("^%s*(.-)%s*$") or ""
+    local inBrackets = text:match('%["([^"]+)%]%s*$') or text:match("%['([^']+)'%]%s*$")
+    if inBrackets and inBrackets ~= "" then return inBrackets end
+    
+    local inQuotes = text:match('"([^"]+)"') or text:match("'([^']+)'")
+    if inQuotes and inQuotes ~= "" then return inQuotes end
+
+    local afterDot = text:match("%.([^%.]+)$")
+    if afterDot and afterDot ~= "" and not afterDot:find("%(") then
+        return afterDot
     end
+
+    return text
+end
+
+local function FindTargetObject(name)
+    local cleanName = name:lower():gsub("%s+", "")
+    local exactMatch = nil
+    local partialMatch = nil
+    local myChar = player.Character
+
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if not (myChar and obj:IsDescendantOf(myChar)) then
+            local objName = obj.Name:lower():gsub("%s+", "")
+            if objName == cleanName then
+                if ExtractCFrameFromInstance(obj) then
+                    exactMatch = obj
+                    break
+                end
+            elseif not partialMatch and string.find(objName, cleanName, 1, true) then
+                if ExtractCFrameFromInstance(obj) then
+                    partialMatch = obj
+                end
+            end
+        end
+    end
+
+    return exactMatch or partialMatch
+end
+
+local function ProcessUniversalTween()
+    local raw = customSearchBox.Text
+    if raw == "" then
+        Notify("Lỗi", "Vui lòng nhập tên hoặc dán path!")
+        return
+    end
+
+    local targetName = ParseTargetName(raw)
+    Notify("Đang quét", 'Tìm: "' .. targetName .. '"')
+
+    local foundObj = FindTargetObject(targetName)
+    if foundObj then
+        local cf = ExtractCFrameFromInstance(foundObj)
+        if cf then
+            Notify("Tìm thấy!", foundObj.Name)
+            TweenTo(cf + Vector3.new(0, 3.5, 0))
+        else
+            Notify("Lỗi", "Đối tượng không có Part vật lý để tới!")
+        end
+    else
+        Notify("Thất bại", 'Không tìm thấy: "' .. targetName .. '"')
+    end
+end
+
+customTweenBtn.MouseButton1Click:Connect(ProcessUniversalTween)
+customSearchBox.FocusLost:Connect(function(enter)
+    if enter then ProcessUniversalTween() end
 end)
 
 -- [STATS FPS/PING]
