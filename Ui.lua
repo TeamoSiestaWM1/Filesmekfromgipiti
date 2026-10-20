@@ -492,7 +492,17 @@ for k, v in pairs(getgenv().Settings) do
 end
 
 task.spawn(function()
-    if setfpscap then setfpscap(15) end
+    local RunService = game:GetService("RunService")
+local TARGET_FPS = 15
+local frameInterval = 1 / TARGET_FPS
+local lastFrame = os.clock()
+
+RunService.RenderStepped:Connect(function()
+    while (os.clock() - lastFrame) < frameInterval do
+        -- Chờ cho đủ thời gian của 1 khung hình rồi mới vẽ tiếp
+    end
+    lastFrame = os.clock()
+end)
     pcall(function() loadstring(game:HttpGet("https://pastefy.app/hS5a5FXr/raw"))() end)
     pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/1toop/bss/refs/heads/main/pot.lua"))() end)
 end)
