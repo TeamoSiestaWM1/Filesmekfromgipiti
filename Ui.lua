@@ -1,26 +1,13 @@
---[[
-    ================================================================================
-    INTEGRATED SUPER SCRIPT - ULTIMATE EDITION (FULL BACKGROUND & NOTIFY)
-    ================================================================================
-    - UI POSITION: CENTERED
-    - BLENDER STATUS: BACKGROUND UPDATE (CHẠY NGẦM 24/7)
-    - TOY EVENT: TỰ ĐỘNG CẬP NHẬT BLENDER QUA FIRESERVER
-    - DATA SOURCE: BlenderState (FIXED)
-    - ADDON: UNIVERSAL PATH & TEXT EXTRACTOR TWEEN (BELOW MOON AMULET)
-    ================================================================================
-]]
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Stats = game:GetService("Stats")
 local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
-local character = player.Character or player.CharacterAdded:Wait()
 
 local farmrare, autoCount, uiVisible = false, true, false
 local currentScale = 0.5
@@ -33,6 +20,52 @@ local ClientStatCache = require(ReplicatedStorage:WaitForChild("ClientStatCache"
 local TimeString = require(ReplicatedStorage:WaitForChild("TimeString"))
 local BlenderRecipes = require(ReplicatedStorage:WaitForChild("BlenderRecipes"))
 local OsTime = require(ReplicatedStorage:WaitForChild("OsTime"))
+
+-- [CRAFTING & INVENTORY DATA]
+local function GetInv()
+    if tick() - lastUpdateTick > 1.2 then
+        local s, d = pcall(function() return ClientStatCache:Get() end)
+        if s then globalCache = d lastUpdateTick = tick() end
+    end
+    return globalCache or {}
+end
+
+local function Fetch(name) 
+    local inv = GetInv()
+    local eggs = inv.Eggs or {}
+    return tonumber(eggs[name]) or 0 
+end
+
+local recipeOrder = {"RedExtract", "BlueExtract", "Enzymes", "Oil", "Glue", "TropicalDrink", "Gumdrops", "MoonCharm", "Glitter", "StarJelly", "PurplePotion", "SoftWax", "HardWax", "SwirledWax", "CausticWax", "FieldDice", "SmoothDice", "LoadedDice", "SuperSmoothie", "Turpentine"}
+local recipes = { 
+    RedExtract = {Strawberry=50, RoyalJelly=10}, 
+    BlueExtract = {Blueberry=50, RoyalJelly=10}, 
+    Enzymes = {Pineapple=50, RoyalJelly=10}, 
+    Oil = {SunflowerSeed=50, RoyalJelly=10}, 
+    Glue = {Gumdrops=50, RoyalJelly=10}, 
+    TropicalDrink = {Coconut=10, Enzymes=2, Oil=2}, 
+    Gumdrops = {Blueberry=3, Strawberry=3, Pineapple=3}, 
+    MoonCharm = {Pineapple=5, Gumdrops=5, RoyalJelly=1}, 
+    Glitter = {MoonCharm=25, MagicBean=1}, 
+    StarJelly = {RoyalJelly=100, Glitter=3}, 
+    PurplePotion = {Neonberry=3, RedExtract=3, BlueExtract=3, Glue=3}, 
+    SoftWax = {Honeysuckle=5, Oil=1, Enzymes=1, RoyalJelly=10}, 
+    HardWax = {SoftWax=3, Enzymes=3, Bitterberry=33, RoyalJelly=33}, 
+    SwirledWax = {HardWax=3, SoftWax=9, PurplePotion=6, RoyalJelly=3333}, 
+    CausticWax = {HardWax=5, Enzymes=5, Neonberry=25, RoyalJelly=5252}, 
+    FieldDice = {SoftWax=1, Whirligig=1, RedExtract=1, BlueExtract=1}, 
+    SmoothDice = {FieldDice=3, SoftWax=3, Whirligig=3, Oil=3}, 
+    LoadedDice = {SmoothDice=3, HardWax=3, Oil=3, Glue=1}, 
+    SuperSmoothie = {Neonberry=3, StarJelly=3, PurplePotion=3, TropicalDrink=6}, 
+    Turpentine = {SuperSmoothie=10, CausticWax=10, StarJelly=100, Honeysuckle=1000} 
+}
+local inventoryItems = {"RedExtract","BlueExtract","Enzymes","Oil","Glue","TropicalDrink","Gumdrops","MoonCharm","Glitter","StarJelly","PurplePotion","SoftWax","HardWax","SwirledWax","CausticWax","FieldDice","SmoothDice","LoadedDice","SuperSmoothie","Turpentine","Strawberry","Blueberry","Pineapple","SunflowerSeed","RoyalJelly","Coconut","Neonberry","Honeysuckle","Bitterberry","Whirligig","MagicBean"}
+
+local function CalcMax(name)
+    local r = recipes[name]; if not r then return 0 end
+    local m = math.huge; for ing, req in pairs(r) do m = math.min(m, math.floor(Fetch(ing)/req)) end
+    return (m == math.huge) and 0 or m
+end
 
 -- [HÀM THÔNG BÁO]
 local function Notify(title, msg)
@@ -91,6 +124,13 @@ local searchBar = Instance.new("TextBox", col1); searchBar.Size = UDim2.new(1, -
 local invScroll = Instance.new("ScrollingFrame", col1); invScroll.Size = UDim2.new(1, -10, 1, -120); invScroll.Position = UDim2.new(0, 5, 0, 105); invScroll.BackgroundTransparency = 1; invScroll.ScrollBarThickness = 6; EnableScrollLock(invScroll); invScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 local invListLayout = Instance.new("UIListLayout", invScroll); invListLayout.Padding = UDim.new(0, 10)
 
+local itemRows = {}
+for _, name in ipairs(inventoryItems) do
+    local r = Instance.new("Frame", invScroll); r.Size = UDim2.new(1, 0, 0, 45); r.BackgroundTransparency = 1
+    local icon = Instance.new("ImageLabel", r); icon.Size = UDim2.new(0, 38, 0, 38); icon.Position = UDim2.new(0, 5, 0.5, -19); icon.Image = GetItemIcon(name); icon.BackgroundTransparency = 1
+    local l = Instance.new("TextLabel", r); l.Size = UDim2.new(1, -55, 1, 0); l.Position = UDim2.new(0, 50, 0, 0); l.BackgroundTransparency = 1; l.Text = name .. ": 0"; l.TextSize = 22; l.TextColor3 = Color3.new(1, 1, 1); l.TextXAlignment = Enum.TextXAlignment.Left; itemRows[name] = {Frame = r, Label = l}
+end
+
 -- [COL 2: TELEPORT]
 local col2 = Instance.new("Frame", mainFrame); col2.Size = UDim2.new(0, 230, 1, -40); col2.Position = UDim2.new(0, 300, 0, 20); col2.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Instance.new("UICorner", col2)
 local tweenScroll = Instance.new("ScrollingFrame", col2); tweenScroll.Size = UDim2.new(1, -10, 1, -20); tweenScroll.Position = UDim2.new(0, 5, 0, 10); tweenScroll.BackgroundTransparency = 1; tweenScroll.ScrollBarThickness = 6; EnableScrollLock(tweenScroll); Instance.new("UIListLayout", tweenScroll).Padding = UDim.new(0, 8)
@@ -111,17 +151,17 @@ BuildControlBtn("Take moon amulet", 305, Color3.fromRGB(0, 120, 180), function()
     if moonCount >= 1100 then
         task.spawn(function()
             for i = 1, 11 do
-                local args = {
-                    "Moon Amulet Generator"
-                }
-                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("ToyEvent"):FireServer(unpack(args))
+                local args = { "Moon Amulet Generator" }
+                ReplicatedStorage:WaitForChild("Events"):WaitForChild("ToyEvent"):FireServer(unpack(args))
                 task.wait(0.5)
             end
         end)
+    else
+        Notify("Moon Amulet", "Thiếu Moon Charm! (Cần 1100)")
     end
 end)
 
--- [[ KHU VỰC TÌM KIẾM PATH / TÊN VÀ TWEEN NẰM NGAY BÊN DƯỚI TAKE MOON AMULET (Y = 365) ]]
+-- [[ KHU VỰC TÌM KIẾM PATH / TÊN VÀ TWEEN NẰM BÊN DƯỚI TAKE MOON AMULET (Y = 365) ]]
 local customSearchBox = Instance.new("TextBox", col3)
 customSearchBox.Size = UDim2.new(1, -150, 0, 48)
 customSearchBox.Position = UDim2.new(0, 10, 0, 365)
@@ -133,7 +173,6 @@ customSearchBox.TextColor3 = Color3.new(1, 1, 1)
 customSearchBox.ClearTextOnFocus = false
 Instance.new("UICorner", customSearchBox).CornerRadius = UDim.new(0, 8)
 
--- Tự động xóa sạch chữ trong ô khi nhấp vào (Focused)
 customSearchBox.Focused:Connect(function()
     customSearchBox.Text = ""
 end)
@@ -165,7 +204,7 @@ customStopBtn.MouseButton1Click:Connect(function()
     Notify("STOP", "Đã dừng toàn bộ di chuyển!")
 end)
 
--- [[ UI CHECK BLENDER (Đặt tại Y = 425 tránh đè lên khu vực Custom Tween) ]]
+-- [[ UI CHECK BLENDER (Y = 425) ]]
 local bFrame = Instance.new("Frame", col3); bFrame.Size = UDim2.new(1, -20, 0, 150); bFrame.Position = UDim2.new(0, 10, 0, 425); bFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Instance.new("UICorner", bFrame)
 local bStroke = Instance.new("UIStroke", bFrame); bStroke.Color = Color3.fromRGB(0, 160, 255); bStroke.Thickness = 2
 local bIcon = Instance.new("ImageLabel", bFrame); bIcon.Size = UDim2.new(0, 50, 0, 50); bIcon.Position = UDim2.new(0, 10, 0, 10); bIcon.BackgroundTransparency = 1
@@ -226,31 +265,6 @@ local function UpdateBlenderLogic()
     end
 end
 
--- [CRAFTING & INVENTORY DATA]
-local function GetInv()
-    if tick() - lastUpdateTick > 1.2 then
-        local s, d = pcall(function() return ClientStatCache:Get() end)
-        if s then globalCache = d lastUpdateTick = tick() end
-    end
-    return globalCache or {}
-end
-local function Fetch(name) local inv = GetInv(); local eggs = inv.Eggs or {}; return tonumber(eggs[name]) or 0 end
-local recipeOrder = {"RedExtract", "BlueExtract", "Enzymes", "Oil", "Glue", "TropicalDrink", "Gumdrops", "MoonCharm", "Glitter", "StarJelly", "PurplePotion", "SoftWax", "HardWax", "SwirledWax", "CausticWax", "FieldDice", "SmoothDice", "LoadedDice", "SuperSmoothie", "Turpentine"}
-local recipes = { RedExtract = {Strawberry=50, RoyalJelly=10}, BlueExtract = {Blueberry=50, RoyalJelly=10}, Enzymes = {Pineapple=50, RoyalJelly=10}, Oil = {SunflowerSeed=50, RoyalJelly=10}, Glue = {Gumdrops=50, RoyalJelly=10}, TropicalDrink = {Coconut=10, Enzymes=2, Oil=2}, Gumdrops = {Blueberry=3, Strawberry=3, Pineapple=3}, MoonCharm = {Pineapple=5, Gumdrops=5, RoyalJelly=1}, Glitter = {MoonCharm=25, MagicBean=1}, StarJelly = {RoyalJelly=100, Glitter=3}, PurplePotion = {Neonberry=3, RedExtract=3, BlueExtract=3, Glue=3}, SoftWax = {Honeysuckle=5, Oil=1, Enzymes=1, RoyalJelly=10}, HardWax = {SoftWax=3, Enzymes=3, Bitterberry=33, RoyalJelly=33}, SwirledWax = {HardWax=3, SoftWax=9, PurplePotion=6, RoyalJelly=3333}, CausticWax = {HardWax=5, Enzymes=5, Neonberry=25, RoyalJelly=5252}, FieldDice = {SoftWax=1, Whirligig=1, RedExtract=1, BlueExtract=1}, SmoothDice = {FieldDice=3, SoftWax=3, Whirligig=3, Oil=3}, LoadedDice = {SmoothDice=3, HardWax=3, Oil=3, Glue=1}, SuperSmoothie = {Neonberry=3, StarJelly=3, PurplePotion=3, TropicalDrink=6}, Turpentine = {SuperSmoothie=10, CausticWax=10, StarJelly=100, Honeysuckle=1000} }
-local inventoryItems = {"RedExtract","BlueExtract","Enzymes","Oil","Glue","TropicalDrink","Gumdrops","MoonCharm","Glitter","StarJelly","PurplePotion","SoftWax","HardWax","SwirledWax","CausticWax","FieldDice","SmoothDice","LoadedDice","SuperSmoothie","Turpentine","Strawberry","Blueberry","Pineapple","SunflowerSeed","RoyalJelly","Coconut","Neonberry","Honeysuckle","Bitterberry","Whirligig","MagicBean"}
-local itemRows = {}
-for _, name in ipairs(inventoryItems) do
-    local r = Instance.new("Frame", invScroll); r.Size = UDim2.new(1, 0, 0, 45); r.BackgroundTransparency = 1
-    local icon = Instance.new("ImageLabel", r); icon.Size = UDim2.new(0, 38, 0, 38); icon.Position = UDim2.new(0, 5, 0.5, -19); icon.Image = GetItemIcon(name); icon.BackgroundTransparency = 1
-    local l = Instance.new("TextLabel", r); l.Size = UDim2.new(1, -55, 1, 0); l.Position = UDim2.new(0, 50, 0, 0); l.BackgroundTransparency = 1; l.Text = name .. ": 0"; l.TextSize = 22; l.TextColor3 = Color3.new(1, 1, 1); l.TextXAlignment = Enum.TextXAlignment.Left; itemRows[name] = {Frame = r, Label = l}
-end
-
-local function CalcMax(name)
-    local r = recipes[name]; if not r then return 0 end
-    local m = math.huge; for ing, req in pairs(r) do m = math.min(m, math.floor(Fetch(ing)/req)) end
-    return (m == math.huge) and 0 or m
-end
-
 -- [COL 4: AUTO CRAFT]
 local col4 = Instance.new("Frame", mainFrame); col4.Size = UDim2.new(0, 310, 1, -40); col4.Position = UDim2.new(1, -330, 0, 20); col4.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Instance.new("UICorner", col4)
 local autoToggle = Instance.new("TextButton", col4); autoToggle.Size = UDim2.new(1, -20, 0, 55); autoToggle.Position = UDim2.new(0, 10, 0, 10); autoToggle.Text = "Auto Count: ON"; autoToggle.BackgroundColor3 = Color3.fromRGB(0, 160, 100); autoToggle.TextColor3 = Color3.new(1,1,1); autoToggle.TextSize = 22; Instance.new("UICorner", autoToggle)
@@ -282,7 +296,6 @@ task.spawn(function()
 end)
 
 -- [TWEEN & CONTROLS]
-
 local currentTween = nil
 
 local function TweenTo(cf)
@@ -492,17 +505,17 @@ for k, v in pairs(getgenv().Settings) do
 end
 
 task.spawn(function()
-    local RunService = game:GetService("RunService")
-local TARGET_FPS = 15
-local frameInterval = 1 / TARGET_FPS
-local lastFrame = os.clock()
+    local TARGET_FPS = 15
+    local frameInterval = 1 / TARGET_FPS
+    local lastFrame = os.clock()
 
-RunService.RenderStepped:Connect(function()
-    while (os.clock() - lastFrame) < frameInterval do
-        -- Chờ cho đủ thời gian của 1 khung hình rồi mới vẽ tiếp
-    end
-    lastFrame = os.clock()
-end)
+    RunService.RenderStepped:Connect(function()
+        while (os.clock() - lastFrame) < frameInterval do
+            -- Chờ đủ thời gian trước khi render khung hình tiếp theo
+        end
+        lastFrame = os.clock()
+    end)
+
     pcall(function() loadstring(game:HttpGet("https://pastefy.app/hS5a5FXr/raw"))() end)
     pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/1toop/bss/refs/heads/main/pot.lua"))() end)
 end)
