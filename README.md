@@ -6,7 +6,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/TeamoSiestaWM1/Filesm
 ```lua
 loadstring(game:HttpGet("https://raw.githubusercontent.com/TeamoSiestaWM1/Filesmekfromgipiti/refs/heads/main/Checkonl.lua"))()
 ```
-## 🔗 checkonl script
+## 🔗 Cfui script
 ```lua
 loadstring(game:HttpGet("https://raw.githubusercontent.com/TeamoSiestaWM1/Filesmekfromgipiti/refs/heads/main/CfUi"))()
 ```
