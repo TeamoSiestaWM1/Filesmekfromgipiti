@@ -1,4 +1,3 @@
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -161,10 +160,57 @@ BuildControlBtn("Take moon amulet", 305, Color3.fromRGB(0, 120, 180), function()
     end
 end)
 
--- [[ KHU VỰC TÌM KIẾM PATH / TÊN VÀ TWEEN NẰM BÊN DƯỚI TAKE MOON AMULET (Y = 365) ]]
+-- NÚT MUA 3 PLANTER ĐƯỢC THÊM MỚI Ở ĐÂY
+BuildControlBtn("Buy 3 essential planter", 365, Color3.fromRGB(200, 100, 0), function()
+    task.spawn(function()
+        local function getHoney()
+            if player and player:FindFirstChild("CoreStats") and player.CoreStats:FindFirstChild("Honey") then
+                return player.CoreStats.Honey.Value
+            end
+            return 0
+        end
+
+        local myHoney = getHoney()
+
+        -- 1. Check & Mua Blue Clay Planter
+        if myHoney >= 10000000 and Fetch("MagicBean") >= 5 and Fetch("BlueExtract") >= 15 and Fetch("SoftWax") >= 20 then
+            Notify("Planter", "Đang mua Blue Clay Planter...")
+            local args = { "Purchase", { ["Type"] = "Blue ClayPlanter", ["Amount"] = 1, ["Category"] = "Eggs" } }
+            pcall(function() ReplicatedStorage.Events.ItemPackageEvent:InvokeServer(unpack(args)) end)
+            task.wait(1.5)
+            myHoney = getHoney() -- Cập nhật lại số honey sau khi mua
+        else
+            Notify("Planter", "Bỏ qua Blue Clay Planter (thiếu Honey hoặc Nguyên liệu)")
+            task.wait(0.5)
+        end
+
+        -- 2. Check & Mua Red Clay Planter
+        if myHoney >= 10000000 and Fetch("MagicBean") >= 5 and Fetch("RedExtract") >= 15 and Fetch("SoftWax") >= 20 then
+            Notify("Planter", "Đang mua Red Clay Planter...")
+            local args = { "Purchase", { ["Type"] = "Red ClayPlanter", ["Amount"] = 1, ["Category"] = "Eggs" } }
+            pcall(function() ReplicatedStorage.Events.ItemPackageEvent:InvokeServer(unpack(args)) end)
+            task.wait(1.5)
+            myHoney = getHoney()
+        else
+            Notify("Planter", "Bỏ qua Red Clay Planter (thiếu Honey hoặc Nguyên liệu)")
+            task.wait(0.5)
+        end
+
+        -- 3. Check & Mua Tacky Planter
+        if myHoney >= 50000000 and Fetch("MagicBean") >= 10 and Fetch("PurplePotion") >= 1 and Fetch("HardWax") >= 5 and Fetch("SoftWax") >= 20 then
+            Notify("Planter", "Đang mua Tacky Planter...")
+            local args = { "Purchase", { ["Type"] = "Tacky Planter", ["Amount"] = 1, ["Category"] = "Eggs" } }
+            pcall(function() ReplicatedStorage.Events.ItemPackageEvent:InvokeServer(unpack(args)) end)
+        else
+            Notify("Planter", "Bỏ qua Tacky Planter (thiếu Honey hoặc Nguyên liệu)")
+        end
+    end)
+end)
+
+-- [[ KHU VỰC TÌM KIẾM PATH / TÊN VÀ TWEEN ĐƯỢC ĐẨY XUỐNG DƯỚI (Y = 425) ]]
 local customSearchBox = Instance.new("TextBox", col3)
 customSearchBox.Size = UDim2.new(1, -150, 0, 48)
-customSearchBox.Position = UDim2.new(0, 10, 0, 365)
+customSearchBox.Position = UDim2.new(0, 10, 0, 425) -- Thay đổi từ 365 -> 425
 customSearchBox.PlaceholderText = 'Nhập tên hoặc path ["..."]'
 customSearchBox.Text = ""
 customSearchBox.TextSize = 15
@@ -179,7 +225,7 @@ end)
 
 local customTweenBtn = Instance.new("TextButton", col3)
 customTweenBtn.Size = UDim2.new(0, 68, 0, 48)
-customTweenBtn.Position = UDim2.new(1, -135, 0, 365)
+customTweenBtn.Position = UDim2.new(1, -135, 0, 425) -- Thay đổi từ 365 -> 425
 customTweenBtn.Text = "TWEEN"
 customTweenBtn.TextSize = 15
 customTweenBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 85)
@@ -188,7 +234,7 @@ Instance.new("UICorner", customTweenBtn).CornerRadius = UDim.new(0, 8)
 
 local customStopBtn = Instance.new("TextButton", col3)
 customStopBtn.Size = UDim2.new(0, 52, 0, 48)
-customStopBtn.Position = UDim2.new(1, -62, 0, 365)
+customStopBtn.Position = UDim2.new(1, -62, 0, 425) -- Thay đổi từ 365 -> 425
 customStopBtn.Text = "STOP"
 customStopBtn.TextSize = 14
 customStopBtn.BackgroundColor3 = Color3.fromRGB(160, 35, 35)
@@ -204,8 +250,8 @@ customStopBtn.MouseButton1Click:Connect(function()
     Notify("STOP", "Đã dừng toàn bộ di chuyển!")
 end)
 
--- [[ UI CHECK BLENDER (Y = 425) ]]
-local bFrame = Instance.new("Frame", col3); bFrame.Size = UDim2.new(1, -20, 0, 150); bFrame.Position = UDim2.new(0, 10, 0, 425); bFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Instance.new("UICorner", bFrame)
+-- [[ UI CHECK BLENDER ĐƯỢC ĐẨY XUỐNG DƯỚI (Y = 485) ]]
+local bFrame = Instance.new("Frame", col3); bFrame.Size = UDim2.new(1, -20, 0, 150); bFrame.Position = UDim2.new(0, 10, 0, 485); bFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Instance.new("UICorner", bFrame) -- Thay đổi từ 425 -> 485
 local bStroke = Instance.new("UIStroke", bFrame); bStroke.Color = Color3.fromRGB(0, 160, 255); bStroke.Thickness = 2
 local bIcon = Instance.new("ImageLabel", bFrame); bIcon.Size = UDim2.new(0, 50, 0, 50); bIcon.Position = UDim2.new(0, 10, 0, 10); bIcon.BackgroundTransparency = 1
 local bName = Instance.new("TextLabel", bFrame); bName.Size = UDim2.new(1, -70, 0, 25); bName.Position = UDim2.new(0, 65, 0, 10); bName.Text = "BLENDER: IDLE"; bName.TextColor3 = Color3.new(1,1,1); bName.TextXAlignment = Enum.TextXAlignment.Left; bName.BackgroundTransparency = 1; bName.TextSize = 20
